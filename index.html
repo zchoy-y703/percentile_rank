@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Percentile Rank</title>
-    <link rel="icon" href="/favicon.ico">
 
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -12,7 +11,7 @@
     <script type="module" src="https://pyscript.net/releases/2026.3.1/core.js"></script>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white max-w-lg w-full rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+    <div class="bg-white max-w-xl w-full rounded-2xl shadow-xl overflow-auto border border-slate-200">
         <div class="bg-indigo-600 p-6 text-white text-center items-center">
             <h1 class="text-2xl font-bold inline-block align-middle">
                 Compute Percentile Rank
@@ -22,15 +21,15 @@
         <div class="p-8 space-y-6">
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium mb-1">Target List (genus.txt, species.txt)</label>
-                    <input type="file" id="targetFile" accept=".txt" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors">
+                    <label class="block text-sm font-medium mb-1">Target List (targets.json)</label>
+                    <input type="file" id="targetFile" accept=".json" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Reference Database (rel-*-table.tsv)</label>
+                    <label class="block text-sm font-medium mb-1">Reference Database (rel-species-table.tsv)</label>
                     <input type="file" id="refFile" accept=".tsv" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Input Data (rel-*-table.tsv)</label>
+                    <label class="block text-sm font-medium mb-1">Input Data (rel-species-table.tsv)</label>
                     <input type="file" id="dataFile" accept=".tsv" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors">
                 </div>
             </div>
