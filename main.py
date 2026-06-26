@@ -3,6 +3,8 @@ import asyncio
 import io
 from pyscript import document, window # https://docs.pyscript.net/2026.3.1/example-apps/overview/
 
+import json
+
 import numpy as np
 import pandas as pd
 from scipy.stats import percentileofscore
@@ -40,12 +42,12 @@ async def process_files(event):
         data_text = await data_file.text()
 
         # Convert the string content to a Pandas DataFrame
-        targs = [line.rstrip() for line in targ_text.splitlines()]
+        targs_dict = json.loads(targ_text)
         ref_df = pd.read_csv(io.StringIO(ref_text), sep='\t', skiprows=1, index_col=0)
         data_df = pd.read_csv(io.StringIO(data_text), sep='\t', skiprows=1, index_col=0)
 
         # 4. Compute the output
-        result_df = compute_custom_logic(targs, ref_df, data_df)
+        result_df = compute_custom_logic(targs_dict, ref_df, data_df)
         tsv_string = result_df.to_csv(sep='\t')
 
         # 5. Create a Blob and generate a download URL
@@ -85,6 +87,16 @@ def reset_page(event):
         # Reset Button state
         btn = document.getElementById("process-btn")
         btn.disabled = False
+
+        # Reset variables
+        global targs_dict
+        targs_dict = None
+        global ref_df
+        ref_df = None
+        global data_df
+        data_df = None
+        global result_df
+        result_df = None
         
     except Exception as e:
         print(f"Error during reset: {e}")
@@ -99,11 +111,20 @@ def preview_df(df):
     document.getElementById("preview-container").classList.remove("hidden")
     return
 
-def compute_custom_logic(targs, ref_df, data_df):
+def preview_txt(txt):
+    status_msg = document.getElementById("status-msg")
+    status_msg.innerText = f"{txt}"
+    status_msg.classList.remove("hidden")
+    return
+
+def compute_custom_logic(targs_dict, ref_df, data_df):
+    # debug
+    status_msg = document.getElementById("status-msg")
+
     ref = ref_df.transpose()
     data = data_df.transpose()
 
-    if len(targs) == 0:
+    if len(targs_dict) == 0:
         raise ValueError("Target list is empty.")
     
     if ref_df.empty:
@@ -111,17 +132,51 @@ def compute_custom_logic(targs, ref_df, data_df):
     
     if data_df.empty:
         raise ValueError("Input Data is empty.")
+
+    # check ref and data at species level
+    taxo_lvl = ref.columns[0].count(';')
+    if taxo_lvl != 6: # species level
+        raise ValueError("Reference database not at species level.")
     
-    ref_abs_targs = [t for t in targs if t not in ref.columns]
-    if len(ref_abs_targs) > 0:
-        raise ValueError(f"Target(s) {', '.join(ref_abs_targs)} not found in reference DataFrame.")
+    taxo_lvl = data.columns[0].count(';')
+    if taxo_lvl != 6: # species level
+        raise ValueError("Input data not at species level.")
+    
+    # check if all targets present in ref
+    # get sum of selected targets in ref and data
+    absent_targs_data = []
+    for t,v in targs_dict.items():
+        if isinstance(v, list): # get cols to include
+            incl_cols_ref = []
+            incl_cols_data = []
+            for tv in v:
+                incl_cols_ref.extend([c for c in ref.columns if tv in c])
+                incl_cols_data.extend([c for c in data.columns if tv in c])
+        else:
+            incl_cols_ref = [c for c in ref.columns if v in c]
+            incl_cols_data = [c for c in data.columns if v in c]
+        
+        # get sum of selected targets
+        if len(incl_cols_ref) > 1:
+            ref[t] = ref[incl_cols_ref].sum(axis=1)
+            ref = ref.drop(columns=incl_cols_ref)
+        elif len(incl_cols_ref) == 1:
+            ref = ref.rename(columns={incl_cols_ref[0]: t})
+        else:
+            raise ValueError(f"Target {t} not found in reference DataFrame.")
+        
+        if len(incl_cols_data) > 0:
+            data[t] = data[incl_cols_data].sum(axis=1)
+            data = data.drop(columns=incl_cols_data)
+        elif len(incl_cols_data) == 1:
+            data = data.rename(columns={incl_cols_data[0]: t})
+    
+    ref = ref[list(targs_dict.keys())]
+    absent_targs = [t for t in ref.columns if t not in data.columns]
+    incl_targs = list(set(ref.columns) - set(absent_targs))
 
-    absent_targs = [t for t in targs if t not in data.columns]
-    incl_targs = list(set(targs) - set(absent_targs))
-
-    ref = ref[incl_targs]
     data = data[incl_targs]
-
+    
     ps = []
     for t in incl_targs:
         tmp = data[t].values
@@ -130,5 +185,6 @@ def compute_custom_logic(targs, ref_df, data_df):
     tdf = pd.DataFrame(ps, index=data.columns, columns=data.index)
     tdf = tdf.transpose()
     tdf = tdf.assign(**{t: np.nan for t in absent_targs})
+    tdf = tdf[list(targs_dict.keys())]
     #tdf.to_csv(outpath, sep='\t')
     return tdf
